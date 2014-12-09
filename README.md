@@ -15,4 +15,5 @@ console.log("Decrypted message = " +decrypted_msg);
 ```
 Javascript code in the html is another working example usage of the library. It's also recommanded to convert the cipher text to base64 before pringting out for readability. 
 
-Zhengqi Yang<zyang36@illinois.edu>
+Zhengqi Yang
+<zyang36@illinois.edu>
