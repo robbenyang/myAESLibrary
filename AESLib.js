@@ -1,4 +1,4 @@
-/**
+/*
 	Constructor for AESLib. Initialize lookup tables for sbox, inverse sbox and multiplication in Galois Field
 */
 var AESLib = function(){
@@ -142,6 +142,32 @@ var AESLib = function(){
 
 }
 
+/** 
+	generate nonce for initial operator and counter will be added to it
+	@return an array of bytes
+*/
+AESLib.prototype.generateNonce = function(){
+	var nonce = new Array(16);
+	for( var i = 0; i < 16; i++){
+		nonce[i] = Math.floor(Math.random() * 256);
+	}
+	return nonce;
+}
+
+/**
+	generate a random key
+	@return a string of generated key (guaranteed to be 16 bytes)
+*/
+AESLib.prototype.generateKey = function(){
+	var dict = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	var key = "";
+	for(var i = 0; i < 16; i++){
+		var idx = Math.floor(Math.random()*64);
+		key += dict[idx];
+	}
+	return key;
+}
+
 /**
 	Expand the parameter key to AES key used for encryption/decryption. The length of the key must be 128-bit. i.e. key length is 16 bytes. 
 	@params key_str: plaintext Javascript string
@@ -242,7 +268,11 @@ AESLib.prototype.mixColumns= function(state) {
 	Encrypt one block(16 bytes) using AES algorithm
 	@params block: a byte array of message to be encrypted
 */
-AESLib.prototype.encryptBlock = function(block) {
+AESLib.prototype.encryptBlock = function(oriMsg) {
+	var block = [];
+	for(var l = 0; l < 16; l++){
+		block[l] = oriMsg[l];
+	}
 	this.addRoundKey(block, 0);
 	for(var i = 1; i < 10; i++){
 		this.subBytes(block);
@@ -253,6 +283,7 @@ AESLib.prototype.encryptBlock = function(block) {
 	this.subBytes(block);
 	this.shiftRows(block);
 	this.addRoundKey(block, 160);
+	return block;
 };
 
 /**
@@ -316,7 +347,11 @@ AESLib.prototype.invSubBytes = function(state) {
 	Decrypt a AES-encrypted block
 	@params block: the block to be decrypted
 */
-AESLib.prototype.decryptBlock = function(block) {
+AESLib.prototype.decryptBlock = function(cipher) {
+	var block = [];
+	for(var l = 0; l < 16; l++){
+		block[l] = cipher[l];
+	}
 	this.addRoundKey(block, 160);
 	this.invShiftRows(block);
 	this.invSubBytes(block);
@@ -328,6 +363,7 @@ AESLib.prototype.decryptBlock = function(block) {
 		this.invSubBytes(block);
 	}
 	this.addRoundKey(block, 0);
+	return block;
 };
 
 /**
@@ -338,25 +374,26 @@ AESLib.prototype.decryptBlock = function(block) {
 AESLib.prototype.encrypt = function(msg, key) {
 	this.setKey(key);
 	var ret = "";
-	var len = Math.floor(msg.length / 16);
-	var pad = msg.length - 16 * len;
-	pad = 16 - pad;
-	len++;
-	for(var i = 0; i < len; i++){
-		var block = [];
-		for(var j = 0; j < 16; j++){
-			if(i*16+j < msg.length) {
-				block[j] = msg.charCodeAt(i*16+j);
-			}
-			else
-				block[j] = pad;
-		}
-		this.encryptBlock(block);
-		for(var k = 0; k < 16; k++) {
-			ret += String.fromCharCode(block[k]);
-		}
+	var cipher = [];
+	var numBlocks = Math.ceil(msg.length / 16); // Number of blocks need to encrypt
+	var nonce = this.generateNonce();
+	for(var k = 0; k < 16; k++){
+		ret += String.fromCharCode(nonce[k]);
 	}
-	console.log("Expanded key is " + this.expandedKey);
+
+	for(var l = 0; l < numBlocks; l++){
+		var temp = this.encryptBlock(nonce);
+		for(var m = 0; m < 16; m++){
+			cipher[l*16+m] = temp[m] ^ msg.charCodeAt(l*16+m);
+		}
+		nonce[15]++;
+		nonce[15] = nonce[15] % 256;
+	}
+
+
+	for(var i = 0; i < msg.length; i++){
+		ret += String.fromCharCode(cipher[i]);
+	}
 	return ret;
 }
 /**
@@ -366,21 +403,31 @@ AESLib.prototype.encrypt = function(msg, key) {
 */
 AESLib.prototype.decrypt = function(cipherText, key) {
 	var ret = "";
-	var cipher = [];
+	if(key == ""){
+		alert("Please genereate to encrypt the message");
+		return;
+	}
 	this.setKey(key);
-	for(var l = 0; l < cipherText.length; l++){
-		cipher[l] = cipherText.charCodeAt(l);
+
+	var numBlocks = Math.ceil(cipherText.length / 16); // Number of blocks need to encrypt
+	var plaintext = [];
+	var nonce = [];
+	for(var i = 0; i < 16; i++){
+		nonce[i] = cipherText.charCodeAt(i);
 	}
-	for(var i = 0; i < cipher.length/16; i++) {
-		var cipherBlock = [];
-		for(var j = 0; j < 16; j++){
-			cipherBlock[j] = cipher[i*16+j];
+
+	for(var l = 1; l <= numBlocks; l++){
+		var temp = this.encryptBlock(nonce);
+		for(var m = 0; m < 16; m++){
+			plaintext[l*16+m-16] = temp[m] ^ cipherText.charCodeAt(l*16+m);
 		}
-		this.decryptBlock(cipherBlock);
-		for(var k = 0; k < 16; k++){
-			ret += String.fromCharCode(cipherBlock[k]);
-		}
+		nonce[15]++;
+		nonce[15] = nonce[15] % 256;
 	}
-	console.log("In decrypt Expanded key is " + this.expandedKey);
+
+
+	for(var k = 0; k < cipherText.length-16; k++) {
+		ret += String.fromCharCode(plaintext[k]);
+	}
 	return ret;
 }

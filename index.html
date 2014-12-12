@@ -28,6 +28,9 @@
 	<button class="btn btn-success" type="button" value="Encrypt" onclick="myDecrypt()">
 	Decrypt
 	</button>
+	<button class="btn btn-default" type="button" onclick="generateKey()">
+	Generate Key
+	</button>
 	</form>
 	<hr>
 	View this project on <a href="https://github.com/TinySheep/myAESLibrary">GitHub</a>
@@ -58,6 +61,11 @@
 			var msg = aesLib.decrypt(cipher, key);
 			$('#inText').val(msg);
 			$('#cipherText').val("");
+		}
+		function generateKey(){
+			var aesLib = new AESLib();
+			var key = aesLib.generateKey();
+			$('#keyText').val(key);
 		}
 	</script>
 </html>
