@@ -1,6 +1,6 @@
 # AESLib
 
-This is a javascript implement of AES Encryption/Decrytion algorithm using _PKCS7_ padding . It supports 128-bit key only. A simple web interface can be found [here](http://zhengqiyang.com/aesdemo/). 
+This is a javascript implement of counter-mode AES Encryption/Decrytion algorithm. It supports 128-bit key only. A simple web interface can be found [here](http://zhengqiyang.com/aesdemo/). 
 
 Here is a sample javascript code: 
 
